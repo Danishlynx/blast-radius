@@ -11,7 +11,7 @@ dependencies = [
     "duckdb>=1.0",
     # acryl-datahub's mlflow connector caps mlflow-skinny at <2.21, so the
     # whole stack (client + server image in docker-compose.yml) runs 2.20.x.
-    "mlflow>=2.20,<2.21",
+    "mlflow==2.20.3",
     "scikit-learn>=1.4",
     "pandas>=2.0",
     "rich>=13.7",

@@ -301,7 +301,7 @@ services:
   mlflow:
     # 2.20.x matches the pinned mlflow client (acryl-datahub's mlflow
     # connector caps mlflow-skinny at <2.21 — see pyproject.toml).
-    image: ghcr.io/mlflow/mlflow:v2.20.4
+    image: ghcr.io/mlflow/mlflow:v2.20.3
     command:
     - mlflow
     - server

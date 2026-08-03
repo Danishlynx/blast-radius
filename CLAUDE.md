@@ -4,7 +4,7 @@ Autonomous ML supply-chain guardian on DataHub. Hackathon deadline: **Aug 10 202
 
 ## Engineering rules
 
-1. **Pin everything.** `uv.lock` committed; images pinned (DataHub v1.6.0, MLflow v2.20.4 — the acryl-datahub mlflow connector caps mlflow-skinny <2.21, so the whole stack runs 2.20.x); `acryl-datahub==1.6.0.17`. The repo must run cold on a judge's machine Aug 17–31 with zero fixes.
+1. **Pin everything.** `uv.lock` committed; images pinned (DataHub v1.6.0, MLflow v2.20.3 — the acryl-datahub mlflow connector caps mlflow-skinny <2.21, so the whole stack runs 2.20.x); `acryl-datahub==1.6.0.17`. The repo must run cold on a judge's machine Aug 17–31 with zero fixes.
 2. **The agent is stateless.** No local DB/files as source of truth. Idempotency via evidence hash matched against incidents already in DataHub.
 3. **Adapters (`agent/adapters/`) contain zero business logic**, ~50 lines each, mockable. The LLM never calls a raw API.
 4. **LLM pluggable**: `LLM_PROVIDER=anthropic|ollama`, temperature 0, prompts as files in `prompts/`, `MAX_TOOL_CALLS=25`. `make demo` must work with Ollama only.

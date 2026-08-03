@@ -29,7 +29,7 @@ make break-it  # amount_usd -> amount, dollars -> cents. Nothing crashes.
 
 ## What exists so far
 
-- Docker compose stack: DataHub v1.6.0 (auth enabled) + MLflow 2.20.4
+- Docker compose stack: DataHub v1.6.0 (auth enabled) + MLflow 2.20.3
 - Synthetic fintech world with a **planted target-leakage feature** (`chargebacks_next_30d` — aggregates chargebacks from *after* the prediction timestamp)
 - End-to-end lineage in DataHub: `raw_transactions → fct_customer_features → mlFeatures → fraud_model → fraud-scoring-prod`, with column-level lineage and captured SQL
 - The poison migration (`make break-it`)
