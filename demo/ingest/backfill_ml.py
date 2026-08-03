@@ -18,6 +18,8 @@ from __future__ import annotations
 import os
 import sys
 
+from dotenv import load_dotenv
+
 from datahub.emitter.mce_builder import (
     make_dataset_urn,
     make_ml_feature_table_urn,
@@ -72,6 +74,8 @@ def find_model_urn(graph: DataHubGraph) -> str:
         return sorted(results)[-1]
     return make_ml_model_urn("mlflow", "fraud_model", "PROD")
 
+
+load_dotenv()
 
 def main() -> int:
     graph = connect()

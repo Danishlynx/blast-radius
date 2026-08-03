@@ -24,5 +24,6 @@ uv run dbt docs generate --project-dir demo/dbt --profiles-dir demo/dbt --no-com
 
 say "re-ingesting into DataHub (schema v2 lands)"
 uv run datahub ingest -c demo/ingest/dbt.yml
+uv run python demo/ingest/register_warehouse.py
 
 say "the trap is set — raw_transactions now has 'amount' in cents; every dbt model still references amount_usd"

@@ -15,10 +15,11 @@ say "tagging post-outcome assets"
 uv run python demo/ingest/tag_post_outcome.py
 
 RAW_URN='urn:li:dataset:(urn:li:dataPlatform:duckdb,warehouse.main.raw_transactions,PROD)'
+# single-quoted in .env: URNs contain parentheses, which break unquoted sourcing
 if grep -q '^WATCHLIST=' .env; then
   # portable in-place edit (BSD/GNU sed differ; write a temp file instead)
-  awk -v urn="$RAW_URN" 'BEGIN{FS=OFS="="} /^WATCHLIST=/{$0="WATCHLIST=" urn} {print}' .env > .env.tmp && mv .env.tmp .env
+  awk -v urn="$RAW_URN" '/^WATCHLIST=/{print "WATCHLIST=\x27" urn "\x27"; next} {print}' .env > .env.tmp && mv .env.tmp .env
 else
-  printf 'WATCHLIST=%s\n' "$RAW_URN" >> .env
+  printf "WATCHLIST='%s'\n" "$RAW_URN" >> .env
 fi
 ok "WATCHLIST set to $RAW_URN"

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import os
 import sys
+
+from dotenv import load_dotenv
 import time
 
 from datahub.emitter.mce_builder import make_dataset_urn, make_tag_urn
@@ -29,6 +31,8 @@ TARGETS = [
     make_dataset_urn("dbt", "warehouse.main.stg_chargebacks", "PROD"),
 ]
 
+
+load_dotenv()
 
 def main() -> int:
     graph = DataHubGraph(

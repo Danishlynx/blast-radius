@@ -13,6 +13,8 @@ from __future__ import annotations
 import os
 import sys
 
+from dotenv import load_dotenv
+
 from datahub.emitter.mce_builder import (
     make_dataset_urn,
     make_ml_feature_urn,
@@ -71,6 +73,8 @@ def downstream_urns(graph: DataHubGraph, urn: str) -> set[str]:
         for r in result["searchAcrossLineage"]["searchResults"]
     }
 
+
+load_dotenv()
 
 def main() -> int:
     graph = DataHubGraph(

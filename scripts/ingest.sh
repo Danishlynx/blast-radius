@@ -14,4 +14,7 @@ uv run dbt docs generate --project-dir demo/dbt --profiles-dir demo/dbt
 say "ingesting dbt metadata into DataHub"
 uv run datahub ingest -c demo/ingest/dbt.yml
 
+say "registering physical warehouse schemas"
+uv run python demo/ingest/register_warehouse.py
+
 say "ingest complete — browse http://localhost:9002"

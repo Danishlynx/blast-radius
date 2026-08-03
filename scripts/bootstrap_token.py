@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import requests
@@ -57,16 +58,25 @@ def mint_token() -> str:
             "description": "Minted by scripts/bootstrap_token.py",
         }
     }
-    resp = session.post(
-        f"{FRONTEND_URL}/api/v2/graphql",
-        json={"query": mutation, "variables": variables},
-        timeout=15,
-    )
-    resp.raise_for_status()
-    body = resp.json()
-    if body.get("errors"):
-        raise RuntimeError(f"createAccessToken failed: {body['errors']}")
-    return body["data"]["createAccessToken"]["accessToken"]
+    # Right after first boot, GMS's policy bootstrap + policy cache refresh
+    # (120s interval) can lag the health check, so the datahub user briefly
+    # lacks the token privilege. Retry through that window.
+    deadline = time.monotonic() + 300
+    while True:
+        resp = session.post(
+            f"{FRONTEND_URL}/api/v2/graphql",
+            json={"query": mutation, "variables": variables},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        body = resp.json()
+        if not body.get("errors"):
+            return body["data"]["createAccessToken"]["accessToken"]
+        unauthorized = any("Unauthorized" in e.get("message", "") for e in body["errors"])
+        if not unauthorized or time.monotonic() > deadline:
+            raise RuntimeError(f"createAccessToken failed: {body['errors']}")
+        print("token privilege not granted yet (policy bootstrap still settling) — retrying in 20s")
+        time.sleep(20)
 
 
 def write_env_token(token: str) -> None:

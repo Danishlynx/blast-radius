@@ -17,6 +17,10 @@ fi
 DATAHUB_GMS_URL="${DATAHUB_GMS_URL:-http://localhost:8080}"
 MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-http://localhost:5000}"
 
+# Windows consoles default Python to cp1252, which chokes on emoji in
+# third-party log output (e.g. MLflow). Force UTF-8 everywhere.
+export PYTHONUTF8=1
+
 say()  { printf '\033[1;36m[blast-radius]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[1;32m  ✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m  !\033[0m %s\n' "$*"; }
