@@ -1,0 +1,13 @@
+# Ingest MLflow registered models, versions, and runs into DataHub.
+# Training-data lineage from the connector is best-effort; backfill_ml.py
+# stitches the full chain explicitly afterwards.
+# Run from the repo root: uv run datahub ingest -c demo/ingest/mlflow.yml
+source:
+  type: mlflow
+  config:
+    tracking_uri: ${MLFLOW_TRACKING_URI}
+sink:
+  type: datahub-rest
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_TOKEN}

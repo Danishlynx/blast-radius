@@ -1,0 +1,15 @@
+# Ingest the dbt project (models + sources) into DataHub.
+# Emits both dbt nodes and their physical DuckDB sibling datasets, with
+# column-level lineage and compiled SQL (both on by default in the dbt source).
+# Run from the repo root: uv run datahub ingest -c demo/ingest/dbt.yml
+source:
+  type: dbt
+  config:
+    manifest_path: demo/dbt/target/manifest.json
+    catalog_path: demo/dbt/target/catalog.json
+    target_platform: duckdb
+sink:
+  type: datahub-rest
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_TOKEN}

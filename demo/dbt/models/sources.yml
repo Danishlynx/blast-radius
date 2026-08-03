@@ -1,0 +1,51 @@
+version: 2
+
+sources:
+  - name: warehouse
+    description: Raw operational tables landed in the DuckDB warehouse.
+    database: warehouse
+    schema: main
+    tables:
+      - name: customers
+        description: One row per customer.
+        columns:
+          - name: customer_id
+            description: Stable customer identifier.
+          - name: country
+            description: Customer home country (ISO 3166-1 alpha-2).
+          - name: created_at
+            description: Account creation timestamp.
+      - name: raw_transactions
+        description: >
+          Card transactions as landed from the payments processor. One row per
+          transaction.
+        columns:
+          - name: txn_id
+            description: Unique transaction identifier.
+          - name: customer_id
+            description: Customer who made the transaction.
+          - name: merchant
+            description: Merchant identifier.
+          - name: country
+            description: Country where the transaction occurred.
+          - name: amount_usd
+            description: Transaction amount in US dollars (decimal dollars, not cents).
+          - name: event_ts
+            description: Transaction timestamp. Features must only use information available at this moment.
+      - name: chargebacks
+        description: >
+          Chargebacks filed against transactions. A chargeback is always filed
+          days-to-weeks AFTER the transaction it disputes: this table contains
+          post-outcome information relative to any transaction's event_ts.
+        columns:
+          - name: txn_id
+            description: The disputed transaction.
+          - name: chargeback_ts
+            description: When the chargeback was filed. Always strictly after the transaction's event_ts.
+      - name: labels
+        description: Fraud adjudication labels, one row per transaction.
+        columns:
+          - name: txn_id
+            description: Transaction identifier.
+          - name: is_fraud
+            description: Whether the transaction was adjudicated as fraud (the model target).

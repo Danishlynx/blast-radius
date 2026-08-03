@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: stg_transactions
+    description: Standardized transaction stream, amounts in US dollars.
+    columns:
+      - name: txn_id
+        description: Unique transaction identifier.
+      - name: customer_id
+        description: Customer who made the transaction.
+      - name: merchant
+        description: Merchant identifier.
+      - name: country
+        description: Country where the transaction occurred.
+      - name: amount_usd
+        description: Transaction amount in US dollars (decimal dollars, not cents).
+      - name: event_ts
+        description: Transaction timestamp; the prediction-time cutoff for features.
+
+  - name: stg_chargebacks
+    description: >
+      Chargebacks with the disputing customer attached. Post-outcome data:
+      a chargeback always lands after the transaction it disputes.
+    columns:
+      - name: txn_id
+        description: The disputed transaction.
+      - name: customer_id
+        description: Customer who made the disputed transaction.
+      - name: chargeback_ts
+        description: When the chargeback was filed (strictly after event_ts).
+
+  - name: fct_customer_features
+    description: >
+      Per-transaction feature table consumed by the fraud model. All features
+      are trailing-window aggregates as of event_ts, except
+      chargebacks_next_30d which looks forward in time.
+    columns:
+      - name: txn_id
+        description: Unique transaction identifier (grain of the table).
+      - name: customer_id
+        description: Customer who made the transaction.
+      - name: event_ts
+        description: Prediction timestamp; features must only use data available before this moment.
+      - name: txn_count_30d
+        description: Number of this customer's transactions in the trailing 30 days.
+      - name: avg_amount_30d
+        description: Average transaction amount (US dollars) for this customer over the trailing 30 days. Derived from raw_transactions.amount_usd.
+      - name: distinct_merchants_30d
+        description: Distinct merchants this customer used in the trailing 30 days.
+      - name: country_risk
+        description: Static risk score of the transaction country.
+      - name: chargebacks_next_30d
+        description: Count of this customer's chargebacks in the 30 days AFTER event_ts. Aggregates post-outcome data.
+      - name: is_fraud
+        description: Adjudicated fraud label (the training target).

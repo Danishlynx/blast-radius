@@ -1,0 +1,10 @@
+blast_radius_demo:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Resolved relative to the working directory (the repo root — scripts
+      # always invoke dbt from there). Override with BR_WAREHOUSE_PATH.
+      path: "{{ env_var('BR_WAREHOUSE_PATH', 'demo/warehouse.duckdb') }}"
+      schema: main
+      threads: 1

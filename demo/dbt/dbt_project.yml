@@ -1,0 +1,10 @@
+name: blast_radius_demo
+version: "1.0.0"
+profile: blast_radius_demo
+
+model-paths: ["models"]
+target-path: "target"
+
+models:
+  blast_radius_demo:
+    +materialized: table
