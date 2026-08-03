@@ -1,0 +1,5 @@
+# Normalize to LF everywhere — bash scripts break with CRLF on macOS/Linux,
+# and Git Bash on Windows handles LF fine.
+* text=auto eol=lf
+*.png binary
+*.duckdb binary
