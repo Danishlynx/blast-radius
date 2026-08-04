@@ -28,6 +28,7 @@ blast-radius = "agent.cli:main"
 
 [dependency-groups]
 dev = [
+    "mcp-server-datahub==0.6.0",
     "pytest>=8.0",
     "ruff>=0.6",
 ]
@@ -42,6 +43,12 @@ packages = ["agent"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "SIM115",  # mcp_read keeps devnull open for the session lifetime via ExitStack
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

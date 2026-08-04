@@ -9,18 +9,17 @@ from __future__ import annotations
 
 import os
 import sys
-
-from dotenv import load_dotenv
 import time
 
 from datahub.emitter.mce_builder import make_dataset_urn, make_tag_urn
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
+from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
 from datahub.metadata.schema_classes import (
     GlobalTagsClass,
     TagAssociationClass,
     TagPropertiesClass,
 )
+from dotenv import load_dotenv
 
 TAG_URN = make_tag_urn("post-outcome")
 

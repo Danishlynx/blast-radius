@@ -18,8 +18,6 @@ from __future__ import annotations
 import os
 import sys
 
-from dotenv import load_dotenv
-
 from datahub.emitter.mce_builder import (
     make_dataset_urn,
     make_ml_feature_table_urn,
@@ -28,14 +26,18 @@ from datahub.emitter.mce_builder import (
     make_ml_model_urn,
 )
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
+from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
 from datahub.metadata.schema_classes import (
     DeploymentStatusClass,
     MLFeaturePropertiesClass,
     MLFeatureTablePropertiesClass,
     MLModelDeploymentPropertiesClass,
     MLModelPropertiesClass,
+    OwnerClass,
+    OwnershipClass,
+    OwnershipTypeClass,
 )
+from dotenv import load_dotenv
 
 FEATURE_TABLE_NAME = "customer_features"
 FEATURES = {
@@ -119,6 +121,17 @@ def main() -> int:
     if not model_props.description:
         model_props.description = "Gradient-boosted fraud classifier trained on customer_features."
     graph.emit_mcp(MetadataChangeProposalWrapper(entityUrn=model_urn, aspect=model_props))
+
+    # Ownership on the key assets so the blast radius resolves owners to alert.
+    owner_urn = "urn:li:corpuser:datahub"
+    owned = [RAW_URN, FCT_URN, ft_urn, model_urn, dep_urn]
+    for urn in owned:
+        ownership = graph.get_aspect(urn, OwnershipClass) or OwnershipClass(owners=[])
+        if not any(o.owner == owner_urn for o in ownership.owners):
+            ownership.owners.append(
+                OwnerClass(owner=owner_urn, type=OwnershipTypeClass.TECHNICAL_OWNER)
+            )
+            graph.emit_mcp(MetadataChangeProposalWrapper(entityUrn=urn, aspect=ownership))
 
     print("backfilled ML chain:")
     print(f"  feature table : {ft_urn}")

@@ -14,10 +14,9 @@ import sys
 from pathlib import Path
 
 import duckdb
-from dotenv import load_dotenv
 from datahub.emitter.mce_builder import make_data_platform_urn, make_dataset_urn
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
+from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
 from datahub.metadata.schema_classes import (
     BooleanTypeClass,
     DateTypeClass,
@@ -29,6 +28,7 @@ from datahub.metadata.schema_classes import (
     StringTypeClass,
     TimeTypeClass,
 )
+from dotenv import load_dotenv
 
 DB_PATH = Path(__file__).resolve().parents[1] / "warehouse.duckdb"
 

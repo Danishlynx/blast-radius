@@ -81,8 +81,8 @@ def mint_token() -> str:
 
 def write_env_token(token: str) -> None:
     text = ENV_PATH.read_text() if ENV_PATH.exists() else ""
-    if re.search(r"^DATAHUB_TOKEN=.*$", text, flags=re.M):
-        text = re.sub(r"^DATAHUB_TOKEN=.*$", f"DATAHUB_TOKEN={token}", text, flags=re.M)
+    if re.search(r"^DATAHUB_TOKEN=.*$", text, flags=re.MULTILINE):
+        text = re.sub(r"^DATAHUB_TOKEN=.*$", f"DATAHUB_TOKEN={token}", text, flags=re.MULTILINE)
     else:
         text += f"\nDATAHUB_TOKEN={token}\n"
     ENV_PATH.write_text(text)

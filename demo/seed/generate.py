@@ -118,7 +118,7 @@ def build_chargebacks(txns: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
     # Chargebacks land 3–25 days AFTER the transaction: strictly post-outcome.
     delays = RNG.uniform(3, 25, len(cb))
     cb["chargeback_ts"] = [
-        ts + timedelta(days=float(d)) for ts, d in zip(cb["event_ts"], delays)
+        ts + timedelta(days=float(d)) for ts, d in zip(cb["event_ts"], delays, strict=True)
     ]
     return cb[["txn_id", "chargeback_ts"]].sort_values("txn_id").reset_index(drop=True)
 

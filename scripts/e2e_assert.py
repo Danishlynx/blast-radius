@@ -13,14 +13,12 @@ from __future__ import annotations
 import os
 import sys
 
-from dotenv import load_dotenv
-
 from datahub.emitter.mce_builder import (
     make_dataset_urn,
     make_ml_feature_urn,
     make_ml_model_deployment_urn,
 )
-from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
+from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
 from datahub.metadata.schema_classes import (
     MLFeaturePropertiesClass,
     MLModelDeploymentPropertiesClass,
@@ -28,6 +26,7 @@ from datahub.metadata.schema_classes import (
     SchemaMetadataClass,
     UpstreamLineageClass,
 )
+from dotenv import load_dotenv
 
 RAW_DUCKDB = make_dataset_urn("duckdb", "warehouse.main.raw_transactions", "PROD")
 FCT_DUCKDB = make_dataset_urn("duckdb", "warehouse.main.fct_customer_features", "PROD")
