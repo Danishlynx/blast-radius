@@ -27,11 +27,12 @@ def complete(prompt: str, max_tokens: int = 400) -> str | None:
     if provider == "anthropic" and os.environ.get("ANTHROPIC_API_KEY"):
         import anthropic
 
+        # No temperature: the parameter is removed on Opus 4.8 / Sonnet 5
+        # and returns a 400. Determinism comes from tight prompts.
         client = anthropic.Anthropic()
         msg = client.messages.create(
-            model=os.environ.get("LLM_MODEL", "claude-sonnet-5"),
+            model=os.environ.get("LLM_MODEL", "claude-opus-4-8"),
             max_tokens=max_tokens,
-            temperature=0,
             messages=[{"role": "user", "content": prompt}],
         )
         return "".join(b.text for b in msg.content if b.type == "text").strip()
