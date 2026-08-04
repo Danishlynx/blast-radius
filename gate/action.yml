@@ -1,0 +1,33 @@
+name: "Blast Radius deployment gate"
+description: >
+  Ask DataHub before deploying an ML model: fail the job while any upstream
+  dataset has an ACTIVE incident or the model carries a risk tag
+  (model-at-risk / leakage-suspect).
+inputs:
+  model_urn:
+    description: "mlModel URN to check (empty = discover via model_query)"
+    required: false
+    default: ""
+  model_query:
+    description: "Search query used to discover the model when model_urn is empty"
+    required: false
+    default: "fraud_model"
+  datahub_gms:
+    description: "DataHub GMS URL"
+    required: true
+  datahub_token:
+    description: "DataHub access token (read privileges suffice)"
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Query DataHub for supply-chain health
+      shell: bash
+      env:
+        MODEL_URN: ${{ inputs.model_urn }}
+        MODEL_QUERY: ${{ inputs.model_query }}
+        DATAHUB_GMS_URL: ${{ inputs.datahub_gms }}
+        DATAHUB_TOKEN: ${{ inputs.datahub_token }}
+      run: |
+        export PATH="$HOME/.local/bin:$HOME/scoop/shims:$PATH"
+        uv run python "${{ github.action_path }}/gate.py"

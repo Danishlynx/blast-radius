@@ -51,6 +51,17 @@ def main() -> int:
     if models:
         print(f"cleared model-at-risk tag from {len(models)} model(s)")
 
+    if os.environ.get("GITHUB_TOKEN") and os.environ.get("GITHUB_REPO"):
+        from agent.adapters import github
+
+        try:
+            for pr in github.list_open_pull_requests("blast-radius/fix-"):
+                github.close_pull_request(pr["number"])
+                github.delete_branch(pr["head"])
+                print(f"closed fix PR #{pr['number']} and deleted {pr['head']}")
+        except Exception as exc:
+            print(f"(fix-PR cleanup skipped: {exc})")
+
     if resolved == 0:
         print("no active Blast Radius incidents found — nothing to resolve")
     return 0

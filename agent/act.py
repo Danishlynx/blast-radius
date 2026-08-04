@@ -49,7 +49,7 @@ class ActReport(BaseModel):
 
 def planned_actions(severity: str) -> list[str]:
     if severity in ("P0", "P1"):
-        return ["incident", "tag", "doc", "alert"]
+        return ["incident", "tag", "doc", "alert", "fix-pr"]
     if severity == "P2":
         return ["incident", "tag", "doc"]
     return ["doc"]
@@ -224,6 +224,23 @@ def act(graph: DataHubGraph, change: ChangeEvent, radius: BlastRadius, diag: Dia
             report.results.append(ActionResult(action="alert", status="done", detail=channel))
         except Exception as exc:
             report.results.append(ActionResult(action="alert", status="failed", detail=str(exc)[:200]))
+
+    if "fix-pr" in actions and not report.duplicate_suppressed:
+        from agent.fixpr import generate_and_open_pr
+
+        fix = generate_and_open_pr(change, radius, diag.evidence)
+        if fix.status == "opened":
+            report.results.append(ActionResult(action="fix-pr", status="done", detail=fix.pr_url or ""))
+            if report.incident_urn:  # make the PR discoverable from the incident
+                graphql.update_incident(
+                    report.incident_urn,
+                    incident_title(change, diag),
+                    incident_description(change, radius, diag) + f"\n**Fix PR:** {fix.pr_url}\n",
+                )
+        elif fix.status == "skipped":
+            report.results.append(ActionResult(action="fix-pr", status="skipped", detail=fix.detail))
+        else:
+            report.results.append(ActionResult(action="fix-pr", status="failed", detail=fix.detail[:200]))
 
     # ---- Remember, after acting: leave the run record in the graph.
     report.run_log = memory.write_run_log(

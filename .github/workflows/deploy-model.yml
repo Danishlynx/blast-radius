@@ -1,0 +1,29 @@
+name: deploy-model
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    # Self-hosted so the gate can reach the local DataHub over the bridge
+    # network — the runner long-polls GitHub outbound; nothing dials in.
+    runs-on: [self-hosted, blast-radius]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/scoop/shims:$PATH"
+          uv sync --frozen
+
+      - name: Deployment gate — ask DataHub first
+        uses: ./gate
+        with:
+          datahub_gms: http://localhost:8080
+          datahub_token: ${{ secrets.DATAHUB_TOKEN }}
+
+      - name: Deploy fraud model
+        shell: bash
+        run: |
+          echo "🚀 deploying fraud_model to fraud-scoring-prod (demo no-op)"
