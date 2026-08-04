@@ -1,10 +1,10 @@
 {
-  "run_id": "789ff5210293",
+  "run_id": "2e85867e00d5",
   "evidence_hash": "3c3ecb5dd1c15eb7e66c772572b9495f11748eaa2f093cf6daf5681e59111a22",
   "change": {
-    "event_id": "789ff5210293",
-    "detected_at": "2026-08-04T15:31:23.222435Z",
-    "source": "poller",
+    "event_id": "2e85867e00d5",
+    "detected_at": "2026-08-04T16:04:47.620800Z",
+    "source": "cli",
     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,warehouse.main.raw_transactions,PROD)",
     "change_type": "rename",
     "columns": [
@@ -16,7 +16,10 @@
       }
     ],
     "raw": {
-      "trigger": "schema poll"
+      "versions_compared": [
+        13,
+        14
+      ]
     }
   },
   "paths": [

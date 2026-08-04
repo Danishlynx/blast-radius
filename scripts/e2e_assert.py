@@ -1,11 +1,13 @@
 """Acceptance assertions against a live DataHub GMS.
 
-Assertion 1 (Day 1): the full chain
-  raw_transactions -> fct_customer_features -> mlFeature(s) -> fraud_model
-  -> fraud-scoring-prod
-exists with column-level lineage on the amount path.
+Modes (argv[1], default "world"):
+  world            assertion 1 — the full lineage chain exists
+  incidents-active assertion 2 — exactly 1 ACTIVE Blast Radius incident on the
+                   feature table with an evidence hash; model-at-risk tag on
+                   the model; run log present (run after break-it + scan)
+  incidents-clear  post-resolve — 0 ACTIVE Blast Radius incidents; tag cleared
 
-Later assertions (2-5) are added as their features land. Exit code 0 = pass.
+Exit code 0 = pass.
 """
 
 from __future__ import annotations
@@ -75,13 +77,81 @@ def downstream_urns(graph: DataHubGraph, urn: str) -> set[str]:
 
 load_dotenv()
 
-def main() -> int:
-    graph = DataHubGraph(
+
+def _connect() -> DataHubGraph:
+    return DataHubGraph(
         DatahubClientConfig(
             server=os.environ.get("DATAHUB_GMS_URL", "http://localhost:8080"),
             token=os.environ.get("DATAHUB_TOKEN") or None,
         )
     )
+
+
+def _our_incidents(urn: str) -> list[dict]:
+    from agent.adapters import graphql
+    from agent.memory import hash_in_description
+
+    return [
+        i for i in graphql.active_incidents(urn)
+        if hash_in_description(i.get("description", ""))
+    ]
+
+
+def _model_tags(graph: DataHubGraph) -> list[str]:
+    from datahub.metadata.schema_classes import GlobalTagsClass
+
+    models = list(
+        graph.get_urns_by_filter(entity_types=["mlModel"], query="fraud_model", batch_size=10)
+    )
+    if not models:
+        return []
+    tags = graph.get_aspect(sorted(models)[-1], GlobalTagsClass)
+    return [t.tag for t in (tags.tags if tags else [])]
+
+
+def assert_incidents_active() -> int:
+    from datahub.metadata.schema_classes import StructuredPropertiesClass
+
+    graph = _connect()
+    print("assertion 2/3: incident filed once, model tagged, run log written")
+
+    ours = _our_incidents(FCT_DUCKDB)
+    check("exactly 1 ACTIVE Blast Radius incident on the feature table", len(ours) == 1,
+          f"found {len(ours)}")
+    check("model-at-risk tag present on fraud_model",
+          "urn:li:tag:model-at-risk" in _model_tags(graph))
+    sp = graph.get_aspect(FCT_DUCKDB, StructuredPropertiesClass)
+    props = {p.propertyUrn for p in (sp.properties if sp else [])}
+    check("run log structured property present on the feature table",
+          "urn:li:structuredProperty:io.blastradius.runLog" in props)
+
+    print(f"\n{PASS} passed, {FAIL} failed")
+    return 1 if FAIL else 0
+
+
+def assert_incidents_clear() -> int:
+    import time
+
+    graph = _connect()
+    print("post-resolve: incidents resolved, tag cleared")
+
+    # The incidents query is index-backed; give the resolve time to settle.
+    deadline = time.monotonic() + 45
+    ours = _our_incidents(FCT_DUCKDB)
+    while ours and time.monotonic() < deadline:
+        time.sleep(5)
+        ours = _our_incidents(FCT_DUCKDB)
+    check("0 ACTIVE Blast Radius incidents on the feature table", len(ours) == 0,
+          f"found {len(ours)}")
+    check("model-at-risk tag cleared from fraud_model",
+          "urn:li:tag:model-at-risk" not in _model_tags(graph))
+
+    print(f"\n{PASS} passed, {FAIL} failed")
+    return 1 if FAIL else 0
+
+
+def main() -> int:
+    graph = _connect()
 
     print("assertion 1: the world exists, end to end")
 
@@ -148,4 +218,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    mode = sys.argv[1] if len(sys.argv) > 1 else "world"
+    if mode == "incidents-active":
+        sys.exit(assert_incidents_active())
+    if mode == "incidents-clear":
+        sys.exit(assert_incidents_clear())
     sys.exit(main())

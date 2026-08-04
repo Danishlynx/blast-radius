@@ -157,7 +157,40 @@ def run_pipeline(graph, change) -> None:
 
     evidence_path = _write_evidence(diag.evidence)
     console.print(f"[dim]evidence chain → {evidence_path}[/dim]")
-    console.print("[dim]stages 4-5 (act / remember) land on Day 4[/dim]")
+
+    console.rule("[bold cyan][4/5] ACT")
+    from agent.act import act, planned_actions
+
+    report = act(graph, change, radius, diag)
+    if not report.results:
+        console.print("[green]severity requires no action beyond the doc note[/green]")
+    status_icon = {
+        "done": "[green]✓[/green]",
+        "updated": "[cyan]↻[/cyan]",
+        "failed": "[red]✗[/red]",
+        "skipped": "[dim]−[/dim]",
+        "needs-approval": "[yellow]⏸[/yellow]",
+    }
+    for r in report.results:
+        console.print(f"  {status_icon[r.status]} {r.action:<9} {r.detail}")
+    planned = set(planned_actions(diag.severity))
+    if report.duplicate_suppressed:
+        skipped = planned - {r.action for r in report.results}
+        if skipped:
+            console.print(f"  [dim]− {', '.join(sorted(skipped))}: unchanged (existing incident covers them)[/dim]")
+
+    console.rule("[bold cyan][5/5] REMEMBER")
+    if report.duplicate_suppressed:
+        console.print(
+            "[bold cyan]duplicate suppressed[/bold cyan] — this break is already in the graph; "
+            f"updated {report.incident_urn}"
+        )
+    if report.run_log:
+        console.print(
+            f"run record → structured property on {_short(report.target_urn)} "
+            f"[dim](run {report.run_log['run_id']}, hash {report.run_log['evidence_hash'][:8]})[/dim]"
+        )
+    console.print("[dim]the agent keeps no database — its memory is the metadata graph[/dim]")
 
 
 def _render_radius(root_urn: str, radius) -> None:

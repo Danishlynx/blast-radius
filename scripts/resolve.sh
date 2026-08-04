@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
-# Placeholder: incident resolution lands on Day 4 of the build plan.
+# Resolve Blast Radius incidents + clear the model-at-risk tag
+# (the gate-green demo beat).
 . "$(dirname "$0")/lib.sh"
-die "not implemented yet — incident resolution arrives on Day 4"
+
+[ -n "${DATAHUB_TOKEN:-}" ] || die "no DATAHUB_TOKEN in .env — run 'make up' first"
+uv run python demo/resolve.py
