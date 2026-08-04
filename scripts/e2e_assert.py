@@ -30,6 +30,11 @@ from datahub.metadata.schema_classes import (
 )
 from dotenv import load_dotenv
 
+# Windows consoles default to cp1252, which can't print the check marks.
+for _stream in (sys.stdout, sys.stderr):
+    if _stream.encoding and _stream.encoding.lower() not in ("utf-8", "utf8"):
+        _stream.reconfigure(encoding="utf-8")
+
 RAW_DUCKDB = make_dataset_urn("duckdb", "warehouse.main.raw_transactions", "PROD")
 FCT_DUCKDB = make_dataset_urn("duckdb", "warehouse.main.fct_customer_features", "PROD")
 FCT_DBT = make_dataset_urn("dbt", "warehouse.main.fct_customer_features", "PROD")

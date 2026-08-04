@@ -26,9 +26,25 @@ grep -q "duplicate suppressed" /tmp/br-scan2.log || die "no 'duplicate suppresse
 ok "duplicate suppressed on re-run"
 uv run python scripts/e2e_assert.py incidents-active
 
+# assertion 5 (gate) runs only when a self-hosted runner is online; judges
+# without one still complete the suite.
+GATE=0
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 \
+   && [ "$(gh api repos/{owner}/{repo}/actions/runners -q '[.runners[] | select(.status == "online")] | length' 2>/dev/null)" -ge 1 ] 2>/dev/null; then
+  GATE=1
+  say "assertion 5a: deployment gate blocks while the incident is active"
+  bash scripts/e2e_gate.sh red
+else
+  warn "no online self-hosted runner — skipping gate assertions (5a/5b)"
+fi
+
 say "resolve + restore"
 uv run python demo/resolve.py
 uv run python scripts/e2e_assert.py incidents-clear
+if [ "$GATE" = "1" ]; then
+  say "assertion 5b: deployment gate passes after resolve"
+  bash scripts/e2e_gate.sh green
+fi
 bash scripts/seed.sh >/dev/null
 bash scripts/ingest.sh >/dev/null
 uv run python scripts/e2e_assert.py world
