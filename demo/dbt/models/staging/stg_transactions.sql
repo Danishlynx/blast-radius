@@ -4,6 +4,6 @@ select
     customer_id,
     merchant,
     country,
-    amount_usd,
+    amount / 100.0 as amount_usd,
     event_ts
 from {{ source('warehouse', 'raw_transactions') }}
