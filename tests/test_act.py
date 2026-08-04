@@ -45,8 +45,8 @@ def make_diag(change, radius) -> Diagnosis:
 
 
 def test_planned_actions_matrix():
-    assert planned_actions("P0") == ["incident", "tag", "doc", "alert"]
-    assert planned_actions("P1") == ["incident", "tag", "doc", "alert"]
+    assert planned_actions("P0") == ["incident", "tag", "doc", "alert", "fix-pr"]
+    assert planned_actions("P1") == ["incident", "tag", "doc", "alert", "fix-pr"]
     assert planned_actions("P2") == ["incident", "tag", "doc"]
     assert planned_actions("P3") == ["doc"]
 
