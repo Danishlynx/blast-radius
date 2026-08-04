@@ -1,0 +1,60 @@
+{
+  "run_id": "24660baac966",
+  "evidence_hash": "0ca040f30849c72534b26ab438e07057ce70b7199436dd756047d995d9d81097",
+  "change": {
+    "event_id": "24660baac966",
+    "detected_at": "2026-08-04T15:21:10.709965Z",
+    "source": "cli",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,warehouse.main.raw_transactions,PROD)",
+    "change_type": "drop",
+    "columns": [
+      {
+        "before": "amount_usd",
+        "after": null,
+        "type_before": null,
+        "type_after": null
+      }
+    ],
+    "raw": {
+      "hand_fed": true
+    }
+  },
+  "paths": [
+    [
+      "warehouse.main.raw_transactions.amount_usd",
+      "warehouse.main.stg_transactions.amount_usd",
+      "warehouse.main.fct_customer_features.avg_amount_30d"
+    ]
+  ],
+  "confidence": "column-level",
+  "sql_refs": [
+    {
+      "asset": "urn:li:dataset:(urn:li:dataPlatform:dbt,warehouse.main.stg_transactions,PROD)",
+      "snippet": "amount_usd,",
+      "reason": "references changed column amount_usd"
+    },
+    {
+      "asset": "urn:li:dataset:(urn:li:dataPlatform:dbt,warehouse.main.fct_customer_features,PROD)",
+      "snippet": "avg(t2.amount_usd)          as avg_amount_30d,",
+      "reason": "references changed column amount_usd"
+    }
+  ],
+  "verdict": "breaking",
+  "severity": "P0",
+  "models": [
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,fraud_model_1,PROD)",
+      "deployed": true,
+      "env": "PROD"
+    }
+  ],
+  "deployments": [
+    {
+      "urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:mlflow,fraud-scoring-prod,PROD)",
+      "env": "PROD"
+    }
+  ],
+  "owners": [
+    "urn:li:corpuser:datahub"
+  ]
+}

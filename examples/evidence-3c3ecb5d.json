@@ -1,0 +1,60 @@
+{
+  "run_id": "789ff5210293",
+  "evidence_hash": "3c3ecb5dd1c15eb7e66c772572b9495f11748eaa2f093cf6daf5681e59111a22",
+  "change": {
+    "event_id": "789ff5210293",
+    "detected_at": "2026-08-04T15:31:23.222435Z",
+    "source": "poller",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,warehouse.main.raw_transactions,PROD)",
+    "change_type": "rename",
+    "columns": [
+      {
+        "before": "amount_usd",
+        "after": "amount",
+        "type_before": "DOUBLE",
+        "type_after": "BIGINT"
+      }
+    ],
+    "raw": {
+      "trigger": "schema poll"
+    }
+  },
+  "paths": [
+    [
+      "warehouse.main.raw_transactions.amount_usd",
+      "warehouse.main.stg_transactions.amount_usd",
+      "warehouse.main.fct_customer_features.avg_amount_30d"
+    ]
+  ],
+  "confidence": "column-level",
+  "sql_refs": [
+    {
+      "asset": "urn:li:dataset:(urn:li:dataPlatform:dbt,warehouse.main.stg_transactions,PROD)",
+      "snippet": "amount_usd,",
+      "reason": "references changed column amount_usd"
+    },
+    {
+      "asset": "urn:li:dataset:(urn:li:dataPlatform:dbt,warehouse.main.fct_customer_features,PROD)",
+      "snippet": "avg(t2.amount_usd)          as avg_amount_30d,",
+      "reason": "references changed column amount_usd"
+    }
+  ],
+  "verdict": "breaking",
+  "severity": "P0",
+  "models": [
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,fraud_model_1,PROD)",
+      "deployed": true,
+      "env": "PROD"
+    }
+  ],
+  "deployments": [
+    {
+      "urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:mlflow,fraud-scoring-prod,PROD)",
+      "env": "PROD"
+    }
+  ],
+  "owners": [
+    "urn:li:corpuser:datahub"
+  ]
+}

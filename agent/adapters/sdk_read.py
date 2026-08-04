@@ -14,6 +14,7 @@ from datahub.metadata.schema_classes import (
     OwnershipClass,
     SchemaMetadataClass,
     UpstreamLineageClass,
+    ViewPropertiesClass,
 )
 
 
@@ -62,6 +63,12 @@ def column_lineage(graph: DataHubGraph, urn: str) -> list[tuple[list[str], list[
     if not ul or not ul.fineGrainedLineages:
         return []
     return [(list(f.upstreams or []), list(f.downstreams or [])) for f in ul.fineGrainedLineages]
+
+
+def view_logic(graph: DataHubGraph, urn: str) -> str | None:
+    """The captured SQL (dbt compiled code) of a dataset, if any."""
+    vp = graph.get_aspect(urn, ViewPropertiesClass)
+    return vp.viewLogic if vp else None
 
 
 def owners(graph: DataHubGraph, urn: str) -> list[str]:

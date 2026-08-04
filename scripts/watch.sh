@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
-# Placeholder: sentinel daemon lands on Day 3 of the build plan.
+# Run the sentinel daemon (schema-change poller over the WATCHLIST).
 . "$(dirname "$0")/lib.sh"
-die "not implemented yet — sentinel daemon arrives on Day 3"
+
+[ -n "${DATAHUB_TOKEN:-}" ] || die "no DATAHUB_TOKEN in .env — run 'make up' first"
+uv run blast-radius watch

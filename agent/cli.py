@@ -1,12 +1,18 @@
-"""Blast Radius CLI: scan | audit | watch.
+"""Blast Radius CLI: scan | watch | audit.
 
-scan (Day 2): synthesize a ChangeEvent from DataHub's schema history and walk
-the blast radius. audit (Day 6) and watch (Day 3) land with their subsystems.
+scan: one-shot — diff schema history (or hand-feed a column) and run the
+pipeline. watch: sentinel daemon — poll the WATCHLIST and run the pipeline on
+every detected change. audit (Day 6) lands with the leakage auditor.
 """
 
 from __future__ import annotations
 
+import json
+import os
+import re
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 
 import click
 from dotenv import load_dotenv
@@ -22,6 +28,8 @@ for stream in (sys.stdout, sys.stderr):
 
 console = Console()
 
+EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
+
 TYPE_ICONS = {
     "dataset": "🗄",
     "mlFeature": "🧬",
@@ -30,6 +38,8 @@ TYPE_ICONS = {
     "mlModelDeployment": "🚀",
     "mlModelGroup": "📦",
 }
+
+SEVERITY_STYLE = {"P0": "bold red", "P1": "red", "P2": "yellow", "P3": "green"}
 
 
 @click.group()
@@ -43,12 +53,10 @@ def main() -> None:
 @click.option("--column", "columns", multiple=True,
               help="Hand-feed changed column(s) instead of diffing schema history.")
 def scan(dataset_urn: str, columns: tuple[str, ...]) -> None:
-    """Scan a dataset for schema changes and walk the blast radius."""
+    """Scan a dataset for schema changes and walk + diagnose the blast radius."""
     from agent.adapters import sdk_read
-    from agent.adapters.mcp_read import run_sync
     from agent.models import ChangeEvent, ColumnChange
     from agent.sentinel import synthesize_change_event
-    from agent.traverse import compute_blast_radius
 
     graph = sdk_read.connect()
 
@@ -57,7 +65,7 @@ def scan(dataset_urn: str, columns: tuple[str, ...]) -> None:
         change = ChangeEvent(
             source="cli",
             entity_urn=dataset_urn,
-            change_type="other",
+            change_type="drop",
             columns=[ColumnChange(before=c) for c in columns],
             raw={"hand_fed": True},
         )
@@ -73,10 +81,87 @@ def scan(dataset_urn: str, columns: tuple[str, ...]) -> None:
                 f"{c.before or '∅'} ({c.type_before or '?'}) → {c.after or '∅'} ({c.type_after or '?'})"
             )
 
+    run_pipeline(graph, change)
+
+
+@main.command()
+def watch() -> None:
+    """Run the sentinel daemon: poll the WATCHLIST for schema changes."""
+    from agent.adapters import sdk_read
+    from agent.sentinel import watch as watch_loop
+
+    graph = sdk_read.connect()
+    # URNs contain commas, so a comma-separated WATCHLIST can only be split
+    # at boundaries where the next entry begins.
+    raw_list = os.environ.get("WATCHLIST", "")
+    urns = [u.strip() for u in re.split(r",(?=urn:li:)", raw_list) if u.strip()]
+    if not urns:
+        console.print("[red]WATCHLIST is empty — run 'make backfill' or set it in .env[/red]")
+        raise SystemExit(1)
+    interval = int(os.environ.get("POLL_INTERVAL_S", "15"))
+
+    console.print(
+        Panel(
+            "\n".join(_short(u) for u in urns),
+            title=f"sentinel watching {len(urns)} dataset(s) · every {interval}s · Ctrl-C to stop",
+        )
+    )
+
+    def on_change(change) -> None:
+        console.rule("[bold cyan][1/5] DETECT")
+        for c in change.columns:
+            console.print(
+                f"detected [bold red]{change.change_type}[/bold red] on "
+                f"[bold]{_short(change.entity_urn)}[/bold]: "
+                f"{c.before or '∅'} ({c.type_before or '?'}) → {c.after or '∅'} ({c.type_after or '?'})"
+            )
+        run_pipeline(graph, change)
+        console.print("[dim]sentinel resumes watching…[/dim]")
+
+    try:
+        watch_loop(graph, urns, interval, on_change)
+    except KeyboardInterrupt:
+        console.print("\n[dim]sentinel stopped[/dim]")
+
+
+def run_pipeline(graph, change) -> None:
+    """Stages 2-3 (traverse, diagnose); act/remember land on Day 4."""
+    from agent.adapters.mcp_read import run_sync
+    from agent.diagnose import diagnose
+    from agent.traverse import compute_blast_radius
+
     console.rule("[bold cyan][2/5] TRAVERSE")
     radius = run_sync(compute_blast_radius(change, graph))
+    _render_radius(change.entity_urn, radius)
 
-    tree = Tree(f"🗄 [bold]{_short(dataset_urn)}[/bold] (changed)")
+    console.rule("[bold cyan][3/5] DIAGNOSE")
+    diag = diagnose(graph, change, radius)
+    style = SEVERITY_STYLE[diag.severity]
+    console.print(
+        Panel(
+            f"verdict: [bold]{diag.verdict}[/bold] — {diag.rationale}\n"
+            f"severity: [{style}]{diag.severity}[/{style}]"
+            + (f"\n\n[italic]{diag.llm_note}[/italic]" if diag.llm_note else ""),
+            title="diagnosis",
+            border_style=style,
+        )
+    )
+    if diag.sql_refs:
+        table = Table(title="captured SQL evidence")
+        table.add_column("asset")
+        table.add_column("reason")
+        table.add_column("snippet", overflow="fold")
+        for r in diag.sql_refs:
+            table.add_row(_short(r.asset), r.reason, r.snippet)
+        console.print(table)
+
+    evidence_path = _write_evidence(diag.evidence)
+    console.print(f"[dim]evidence chain → {evidence_path}[/dim]")
+    console.print("[dim]stages 4-5 (act / remember) land on Day 4[/dim]")
+
+
+def _render_radius(root_urn: str, radius) -> None:
+    tree = Tree(f"🗄 [bold]{_short(root_urn)}[/bold] (changed)")
     by_hop: dict[int, list] = {}
     for n in radius.nodes:
         by_hop.setdefault(n.hop, []).append(n)
@@ -90,6 +175,8 @@ def scan(dataset_urn: str, columns: tuple[str, ...]) -> None:
                 label += " [bold red]● deployed[/bold red]" if n.deployed else " [dim]not deployed[/dim]"
             if n.env:
                 label += f" [red]env={n.env}[/red]"
+            if n.owners:
+                label += f" [blue]👤 {', '.join(o.split(':')[-1] for o in n.owners)}[/blue]"
             branch.add(label)
         cursor = branch
     console.print(tree)
@@ -99,32 +186,31 @@ def scan(dataset_urn: str, columns: tuple[str, ...]) -> None:
         for p in radius.paths:
             console.print("  " + " [dim]→[/dim] ".join(p))
 
-    table = Table(title=f"blast radius — confidence: {radius.confidence}")
-    table.add_column("entity")
-    table.add_column("type")
-    table.add_column("hop", justify="right")
-    table.add_column("owners")
-    for n in radius.nodes:
-        table.add_row(
-            n.name or _short(n.urn),
-            n.entity_type,
-            str(n.hop),
-            ", ".join(o.split(":")[-1] for o in n.owners) or "[dim]—[/dim]",
-        )
-    console.print(table)
-
-    models = radius.models
-    deployments = radius.deployments
     console.print(
         Panel(
             f"[bold]{len([n for n in radius.nodes if n.entity_type == 'dataset'])}[/bold] datasets · "
             f"[bold]{len([n for n in radius.nodes if n.entity_type == 'mlFeature'])}[/bold] features · "
-            f"[bold]{len(models)}[/bold] models · "
-            f"[bold red]{len(deployments)}[/bold red] production deployments in the blast radius",
+            f"[bold]{len(radius.models)}[/bold] models · "
+            f"[bold red]{len(radius.deployments)}[/bold red] production deployments — "
+            f"confidence: {radius.confidence}",
             title="impact",
         )
     )
-    console.print("[dim]stages 3-5 (diagnose / act / remember) land on Days 3-4[/dim]")
+
+
+def _write_evidence(evidence: dict) -> Path:
+    EXAMPLES.mkdir(exist_ok=True)
+    path = EXAMPLES / f"evidence-{evidence['evidence_hash'][:8]}.json"
+    path.write_text(json.dumps(evidence, indent=2), encoding="utf-8")
+    transcript = EXAMPLES / "transcript.md"
+    stamp = datetime.now(UTC).isoformat(timespec="seconds")
+    with transcript.open("a", encoding="utf-8") as fh:
+        fh.write(
+            f"- {stamp} · {evidence['severity']} {evidence['verdict']} on "
+            f"{_short(evidence['change']['entity_urn'])} · hash {evidence['evidence_hash'][:8]} · "
+            f"{len(evidence['models'])} model(s), {len(evidence['deployments'])} deployment(s)\n"
+        )
+    return path
 
 
 @main.command()
@@ -132,13 +218,6 @@ def scan(dataset_urn: str, columns: tuple[str, ...]) -> None:
 def audit(model_urn: str) -> None:
     """Audit a model's features for structural target leakage."""
     console.print("[yellow]not implemented yet — audit arrives on Day 6[/yellow]")
-    raise SystemExit(1)
-
-
-@main.command()
-def watch() -> None:
-    """Run the sentinel daemon (schema-change poller)."""
-    console.print("[yellow]not implemented yet — watch arrives on Day 3[/yellow]")
     raise SystemExit(1)
 
 

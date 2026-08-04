@@ -62,6 +62,48 @@ def diff_schemas(
     return change_type, columns
 
 
+def watch(
+    graph: DataHubGraph,
+    urns: list[str],
+    interval_s: int,
+    on_change,
+    max_iterations: int | None = None,
+) -> None:
+    """Poll schemaMetadata for the watched URNs and emit ChangeEvents.
+
+    In-memory last-seen baseline only — deliberately no local persistence
+    (the graph is the source of truth; a restart just re-baselines).
+    `max_iterations` exists for tests; None means run forever.
+    """
+    import time
+
+    baseline = {urn: sdk_read.schema_fields(graph, urn) for urn in urns}
+    iterations = 0
+    while max_iterations is None or iterations < max_iterations:
+        iterations += 1
+        time.sleep(interval_s)
+        for urn in urns:
+            try:
+                current = sdk_read.schema_fields(graph, urn)
+            except Exception:
+                continue  # transient GMS hiccup; next tick retries
+            if not current or current == baseline[urn]:
+                continue
+            change_type, columns = diff_schemas(baseline[urn], current)
+            baseline[urn] = current
+            if change_type == "other" and not columns:
+                continue
+            on_change(
+                ChangeEvent(
+                    source="poller",
+                    entity_urn=urn,
+                    change_type=change_type,
+                    columns=columns,
+                    raw={"trigger": "schema poll"},
+                )
+            )
+
+
 def synthesize_change_event(graph: DataHubGraph, urn: str) -> ChangeEvent | None:
     """CLI trigger: diff the latest two schema versions of `urn` in DataHub.
 
