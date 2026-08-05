@@ -33,18 +33,26 @@ def schema_fields(graph: DataHubGraph, urn: str, version: int = 0) -> list[tuple
     return [(f.fieldPath, f.nativeDataType or "") for f in sm.fields] if sm else []
 
 
-def schema_history(graph: DataHubGraph, urn: str, max_versions: int = 25) -> list[list[tuple[str, str]]]:
+def schema_history(graph: DataHubGraph, urn: str, hard_cap: int = 500) -> list[list[tuple[str, str]]]:
     """All schema versions oldest -> newest.
 
     GMS archives prior versions at 1..K (oldest first) and serves the current
-    one at version 0 — so the full history is [v1..vK, v0].
+    one at version 0 — so the full history is [v1..vK, v0]. Retention prunes
+    the OLDEST archived versions after enough churn, leaving a gap at the low
+    end, so the probe must tolerate misses: stop only after 10 consecutive
+    missing versions (i.e. well past the last surviving one).
     """
     versions = []
-    for v in range(1, max_versions + 1):
+    misses = 0
+    v = 1
+    while misses < 10 and v <= hard_cap:
         fields = schema_fields(graph, urn, version=v)
-        if not fields:
-            break
-        versions.append(fields)
+        if fields:
+            versions.append(fields)
+            misses = 0
+        else:
+            misses += 1
+        v += 1
     current = schema_fields(graph, urn)
     if current:
         versions.append(current)
