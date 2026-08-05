@@ -155,6 +155,57 @@ def assert_incidents_clear() -> int:
     return 1 if FAIL else 0
 
 
+def assert_leakage() -> int:
+    from datahub.metadata.schema_classes import GlobalTagsClass, MLModelPropertiesClass
+
+    graph = _connect()
+    print("assertion 4: structural leakage audit")
+
+    leak_feature = "urn:li:mlFeature:(customer_features,chargebacks_next_30d)"
+    clean_features = [
+        f"urn:li:mlFeature:(customer_features,{n})"
+        for n in ("txn_count_30d", "avg_amount_30d", "distinct_merchants_30d", "country_risk")
+    ]
+    tag = "urn:li:tag:leakage-suspect"
+
+    def has_tag(urn: str) -> bool:
+        gt = graph.get_aspect(urn, GlobalTagsClass)
+        return any(t.tag == tag for t in (gt.tags if gt else []))
+
+    check("chargebacks_next_30d flagged leakage-suspect", has_tag(leak_feature))
+    check("the four honest features stay clean", not any(has_tag(u) for u in clean_features))
+
+    models = list(
+        graph.get_urns_by_filter(entity_types=["mlModel"], query="fraud_model", batch_size=10)
+    )
+    model_ok = False
+    report_ok = False
+    if models:
+        from datahub.metadata.schema_classes import EditableMLModelPropertiesClass
+
+        model = sorted(models)[-1]
+        model_ok = has_tag(model)
+        # the MCP append may land on either the ingestion description or the
+        # editable one (both render in the UI) — accept either
+        props = graph.get_aspect(model, MLModelPropertiesClass)
+        editable = graph.get_aspect(model, EditableMLModelPropertiesClass)
+        combined = ((props.description if props else "") or "") + (
+            (editable.description if editable else "") or ""
+        )
+        report_ok = "Leakage audit" in combined
+    check("model tagged leakage-suspect", model_ok)
+    check("audit report appended to model docs", report_ok)
+
+    leak_incidents = [
+        i for i in _our_incidents(FCT_DUCKDB) if i.get("title", "").startswith("[LEAKAGE]")
+    ]
+    check("exactly 1 ACTIVE leakage incident on the feature table", len(leak_incidents) == 1,
+          f"found {len(leak_incidents)}")
+
+    print(f"\n{PASS} passed, {FAIL} failed")
+    return 1 if FAIL else 0
+
+
 def main() -> int:
     graph = _connect()
 
@@ -228,4 +279,6 @@ if __name__ == "__main__":
         sys.exit(assert_incidents_active())
     if mode == "incidents-clear":
         sys.exit(assert_incidents_clear())
+    if mode == "leakage":
+        sys.exit(assert_leakage())
     sys.exit(main())

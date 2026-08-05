@@ -46,10 +46,19 @@ def main() -> int:
     models = list(
         graph.get_urns_by_filter(entity_types=["mlModel"], query="fraud_model", batch_size=20)
     )
+    leakage_tag = "urn:li:tag:leakage-suspect"
+    feature_urns = [
+        f"urn:li:mlFeature:(customer_features,{n})"
+        for n in ("txn_count_30d", "avg_amount_30d", "distinct_merchants_30d",
+                  "country_risk", "chargebacks_next_30d")
+    ]
     for model in models:
         sdk_write.remove_tag(graph, model, MODEL_AT_RISK_TAG)
+        sdk_write.remove_tag(graph, model, leakage_tag)
+    for furn in feature_urns:
+        sdk_write.remove_tag(graph, furn, leakage_tag)
     if models:
-        print(f"cleared model-at-risk tag from {len(models)} model(s)")
+        print(f"cleared risk tags from {len(models)} model(s) and {len(feature_urns)} feature(s)")
 
     if os.environ.get("GITHUB_TOKEN") and os.environ.get("GITHUB_REPO"):
         from agent.adapters import github

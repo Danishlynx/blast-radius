@@ -49,4 +49,10 @@ bash scripts/seed.sh >/dev/null
 bash scripts/ingest.sh >/dev/null
 uv run python scripts/e2e_assert.py world
 
+say "assertion 4: structural leakage audit"
+bash scripts/audit.sh >/dev/null 2>&1 || die "audit failed"
+uv run python scripts/e2e_assert.py leakage
+uv run python demo/resolve.py >/dev/null
+uv run python scripts/e2e_assert.py incidents-clear
+
 say "all acceptance assertions passed"

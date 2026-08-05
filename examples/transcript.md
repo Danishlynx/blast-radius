@@ -9,3 +9,4 @@
 - 2026-08-04T16:04:35+00:00 · P0 breaking on warehouse.main.raw_transactions · hash 3c3ecb5d · 1 model(s), 1 deployment(s)
 - 2026-08-04T16:04:53+00:00 · P0 breaking on warehouse.main.raw_transactions · hash 3c3ecb5d · 1 model(s), 1 deployment(s)
 - 2026-08-04T16:22:29+00:00 · P0 breaking on warehouse.main.raw_transactions · hash 3c3ecb5d · 1 model(s), 1 deployment(s)
+- 2026-08-05T15:56:21+00:00 · leakage audit: 1 LEAK, 0 SUSPECT of 5 features · hash 1e8e42fe

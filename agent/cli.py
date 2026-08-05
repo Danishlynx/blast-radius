@@ -247,11 +247,108 @@ def _write_evidence(evidence: dict) -> Path:
 
 
 @main.command()
-@click.argument("model_urn")
-def audit(model_urn: str) -> None:
-    """Audit a model's features for structural target leakage."""
-    console.print("[yellow]not implemented yet — audit arrives on Day 6[/yellow]")
-    raise SystemExit(1)
+@click.argument("model_urn", required=False)
+def audit(model_urn: str | None) -> None:
+    """Audit a model's features for structural target leakage (no data access)."""
+    from agent import leakage
+    from agent.adapters import graphql, mcp_mutate, sdk_read, sdk_write
+    from agent.memory import find_existing_incident
+
+    graph = sdk_read.connect()
+    if not model_urn:
+        models = sorted(
+            graph.get_urns_by_filter(entity_types=["mlModel"], query="fraud_model", batch_size=10)
+        )
+        if not models:
+            console.print("[red]no mlModel found — run 'make backfill' first[/red]")
+            raise SystemExit(1)
+        model_urn = models[-1]
+
+    console.rule("[bold cyan]LEAKAGE AUDIT")
+    console.print(f"model: [bold]{model_urn}[/bold]")
+    report = leakage.audit(graph, model_urn)
+
+    table = Table(title=f"label={report.label_column} · event time={report.event_ts_column}")
+    table.add_column("feature")
+    table.add_column("verdict")
+    table.add_column("rule")
+    table.add_column("why", overflow="fold")
+    style = {"LEAK": "bold red", "SUSPECT": "yellow", "CLEAN": "green"}
+    for v in report.verdicts:
+        table.add_row(v.feature, f"[{style[v.verdict]}]{v.verdict}[/{style[v.verdict]}]",
+                      v.rule or "—", v.reason or "no leakage signal")
+    console.print(table)
+    for v in report.leaks + report.suspects:
+        if v.path:
+            console.print(f"  [dim]{v.feature}:[/dim] {' [dim]→[/dim] '.join(v.path)}")
+
+    flagged = report.leaks + report.suspects
+    if not flagged:
+        console.print("[green]no leakage signals — nothing to write back[/green]")
+        _write_audit_examples(report)
+        return
+
+    console.rule("[bold cyan]WRITE BACK TO THE GRAPH")
+    sdk_write.ensure_tag(
+        graph, leakage.LEAKAGE_TAG, "leakage-suspect",
+        "Structural target-leakage signal found by Blast Radius. See the model docs for the audit.",
+        "#f5a623",
+    )
+    flagged_urns = [
+        f"urn:li:mlFeature:(customer_features,{v.feature})" for v in flagged
+    ] + [model_urn]
+    try:
+        mcp_mutate.add_tag(flagged_urns, leakage.LEAKAGE_TAG)
+        console.print("  [green]✓[/green] leakage-suspect tag (via MCP)")
+    except Exception:
+        for urn in flagged_urns:
+            sdk_write.add_tag(graph, urn, leakage.LEAKAGE_TAG)
+        console.print("  [green]✓[/green] leakage-suspect tag (via SDK fallback)")
+
+    md = leakage.render_markdown(report)
+    try:
+        mcp_mutate.append_description(model_urn, md)
+        console.print("  [green]✓[/green] audit report appended to model docs (via MCP)")
+    except Exception:
+        sdk_write.append_model_description(graph, model_urn, md)
+        console.print("  [green]✓[/green] audit report appended to model docs (via SDK fallback)")
+
+    if report.leaks:
+        targets = sorted({
+            s for v in report.leaks
+            for s in (["urn:li:dataset:(urn:li:dataPlatform:duckdb,warehouse.main.fct_customer_features,PROD)"])
+        })
+        title = f"[LEAKAGE] {len(report.leaks)} feature(s) leak the target into training data"
+        description = (
+            "## 🧬 Target leakage detected structurally\n\n"
+            + "\n".join(f"- `{v.feature}` — {v.rule}: {v.reason}" for v in report.leaks)
+            + f"\n{md}"
+        )
+        existing = find_existing_incident(targets, report.audit_hash)
+        if existing:
+            graphql.update_incident(existing["urn"], title, description)
+            console.print(f"  [cyan]↻[/cyan] duplicate suppressed — updated {existing['urn']}")
+        else:
+            urn = graphql.raise_incident(targets, title, description, priority="HIGH",
+                                         incident_type="CUSTOM", custom_type="TARGET_LEAKAGE")
+            console.print(f"  [green]✓[/green] incident {urn}")
+
+    _write_audit_examples(report)
+    console.print("[dim]structural ≠ statistical: every verdict names the rule and the lineage evidence[/dim]")
+
+
+def _write_audit_examples(report) -> None:
+    from agent.leakage import render_markdown
+
+    EXAMPLES.mkdir(exist_ok=True)
+    (EXAMPLES / "leakage-report.md").write_text(render_markdown(report), encoding="utf-8")
+    stamp = datetime.now(UTC).isoformat(timespec="seconds")
+    with (EXAMPLES / "transcript.md").open("a", encoding="utf-8") as fh:
+        fh.write(
+            f"- {stamp} · leakage audit: {len(report.leaks)} LEAK, "
+            f"{len(report.suspects)} SUSPECT of {len(report.verdicts)} features · "
+            f"hash {report.audit_hash[:8]}\n"
+        )
 
 
 def _short(urn: str) -> str:

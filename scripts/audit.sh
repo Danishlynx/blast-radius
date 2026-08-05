@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
-# Placeholder: target-leakage audit lands on Day 6 of the build plan.
+# Run the structural target-leakage audit against the demo model.
 . "$(dirname "$0")/lib.sh"
-die "not implemented yet — target-leakage audit arrives on Day 6"
+
+[ -n "${DATAHUB_TOKEN:-}" ] || die "no DATAHUB_TOKEN in .env — run 'make up' first"
+uv run blast-radius audit "$@"

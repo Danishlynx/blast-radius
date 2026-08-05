@@ -33,23 +33,25 @@ def raise_incident(
     description: str,
     priority: str = "HIGH",
     incident_type: str = "DATA_SCHEMA",
+    custom_type: str | None = None,
 ) -> str:
-    """Returns the new incident URN."""
+    """Returns the new incident URN. type=CUSTOM requires custom_type."""
+    payload: dict[str, Any] = {
+        "type": incident_type,
+        "title": title,
+        "description": description,
+        "resourceUrns": resource_urns,
+        "priority": priority,
+    }
+    if custom_type:
+        payload["customType"] = custom_type
     data = _gql(
         """
         mutation raiseIncident($input: RaiseIncidentInput!) {
           raiseIncident(input: $input)
         }
         """,
-        {
-            "input": {
-                "type": incident_type,
-                "title": title,
-                "description": description,
-                "resourceUrns": resource_urns,
-                "priority": priority,
-            }
-        },
+        {"input": payload},
     )
     return data["raiseIncident"]
 
