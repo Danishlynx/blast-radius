@@ -1,9 +1,9 @@
 {
-  "run_id": "57eb10d2cdac",
+  "run_id": "085e40fb30be",
   "evidence_hash": "3c3ecb5dd1c15eb7e66c772572b9495f11748eaa2f093cf6daf5681e59111a22",
   "change": {
-    "event_id": "57eb10d2cdac",
-    "detected_at": "2026-08-04T16:22:23.793600Z",
+    "event_id": "085e40fb30be",
+    "detected_at": "2026-08-05T16:08:10.865641Z",
     "source": "cli",
     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,warehouse.main.raw_transactions,PROD)",
     "change_type": "rename",
@@ -17,8 +17,8 @@
     ],
     "raw": {
       "versions_compared": [
-        15,
-        16
+        17,
+        18
       ]
     }
   },

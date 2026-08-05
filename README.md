@@ -95,8 +95,8 @@ Red ❌ with a job summary listing every blocker (and DataHub links) while any u
 
 ## Open-source contributions
 
-- **`skill/datahub-ml-impact`** — an ML impact-analysis skill for the [DataHub skills registry](https://github.com/datahub-project/datahub-skills) (which today has no ML skill): blast-radius walking, severity rubric, structural leakage rules over the MCP tools.
-- **`rfc/ml-entity-incidents.md`** — RFC to extend Incidents to `mlModel`/`mlFeature`/`mlFeatureTable`, motivated by the concrete limitation this agent hit (incidents can't attach to models; see the two-signal workaround in `agent/act.py` + `gate/gate.py`).
+- **`skill/datahub-ml-impact`** — an ML impact-analysis skill for the DataHub skills registry (which today has no ML skill): blast-radius walking, severity rubric, structural leakage rules over the MCP tools. **PR: [datahub-project/datahub-skills#91](https://github.com/datahub-project/datahub-skills/pull/91)**
+- **`rfc/ml-entity-incidents.md`** — RFC to extend Incidents to `mlModel`/`mlFeature`/`mlFeatureTable`, motivated by the concrete limitation this agent hit (incidents can't attach to models; see the two-signal workaround in `agent/act.py` + `gate/gate.py`). **Filed: [datahub-project/datahub#18911](https://github.com/datahub-project/datahub/issues/18911)**
 
 ## Evaluation
 

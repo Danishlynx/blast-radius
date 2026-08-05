@@ -196,9 +196,18 @@ def assert_leakage() -> int:
     check("model tagged leakage-suspect", model_ok)
     check("audit report appended to model docs", report_ok)
 
-    leak_incidents = [
-        i for i in _our_incidents(FCT_DUCKDB) if i.get("title", "").startswith("[LEAKAGE]")
-    ]
+    # index-backed query; give the freshly-raised incident time to appear
+    import time
+
+    deadline = time.monotonic() + 45
+    leak_incidents: list = []
+    while time.monotonic() < deadline:
+        leak_incidents = [
+            i for i in _our_incidents(FCT_DUCKDB) if i.get("title", "").startswith("[LEAKAGE]")
+        ]
+        if len(leak_incidents) == 1:
+            break
+        time.sleep(5)
     check("exactly 1 ACTIVE leakage incident on the feature table", len(leak_incidents) == 1,
           f"found {len(leak_incidents)}")
 

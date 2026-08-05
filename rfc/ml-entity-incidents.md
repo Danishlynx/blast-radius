@@ -71,6 +71,7 @@ upstream dataset once support lands.
 ## Evidence from the field
 
 The full working agent that motivated this RFC (incidents on feature tables +
-`model-at-risk` tags + a CI gate that joins them) is public at
-github.com/Danishlynx/blast-radius — see `agent/act.py` for the workaround in
-code, and `gate/gate.py` for the consumer that must re-join the two signals.
+`model-at-risk` tags + a CI gate that joins them) is at
+github.com/Danishlynx/blast-radius (public with the hackathon submission by
+Aug 10) — see `agent/act.py` for the workaround in code, and `gate/gate.py`
+for the consumer that must re-join the two signals.
