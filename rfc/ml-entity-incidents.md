@@ -1,7 +1,7 @@
 # RFC: Incident support for ML entities (mlModel, mlFeature, mlFeatureTable)
 
 - **Author:** Danish (Blast Radius, DataHub Agent Hackathon)
-- **Status:** Draft for discussion
+- **Status:** Implemented and shipped. Filed upstream as [datahub#18911](https://github.com/datahub-project/datahub/issues/18911), closed as completed after [#19112](https://github.com/datahub-project/datahub/pull/19112), [#19132](https://github.com/datahub-project/datahub/pull/19132), and [#19367](https://github.com/datahub-project/datahub/pull/19367) merged (Aug 2026). Kept here as the original proposal text.
 
 ## Summary
 
@@ -72,6 +72,6 @@ upstream dataset once support lands.
 
 The full working agent that motivated this RFC (incidents on feature tables +
 `model-at-risk` tags + a CI gate that joins them) is at
-github.com/Danishlynx/blast-radius (public with the hackathon submission by
-Aug 10) — see `agent/act.py` for the workaround in code, and `gate/gate.py`
+github.com/Danishlynx/blast-radius — see `agent/act.py` for the workaround
+in code, and `gate/gate.py`
 for the consumer that must re-join the two signals.

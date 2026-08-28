@@ -13,7 +13,7 @@ An optional LLM pass (adapters/llm.py) enriches the semantic assessment —
 e.g. "values are now cents, not dollars" — and is skipped cleanly when no
 provider is configured.
 
-Severity matrix (handoff §6.4):
+Severity matrix:
   P0  breaking + referenced + deployed model with env=PROD downstream
   P1  breaking + referenced + deployed (non-prod), OR semantic with PROD
   P2  breaking/semantic + referenced, models downstream but none deployed

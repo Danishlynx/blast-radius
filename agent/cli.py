@@ -2,7 +2,8 @@
 
 scan: one-shot — diff schema history (or hand-feed a column) and run the
 pipeline. watch: sentinel daemon — poll the WATCHLIST and run the pipeline on
-every detected change. audit (Day 6) lands with the leakage auditor.
+every detected change. audit: walk each feature's lineage backwards and apply
+the structural target-leakage rules.
 """
 
 from __future__ import annotations
@@ -125,7 +126,7 @@ def watch() -> None:
 
 
 def run_pipeline(graph, change) -> None:
-    """Stages 2-3 (traverse, diagnose); act/remember land on Day 4."""
+    """Run stages 2-5: traverse, diagnose, act, remember."""
     from agent.adapters.mcp_read import run_sync
     from agent.diagnose import diagnose
     from agent.traverse import compute_blast_radius

@@ -1,6 +1,6 @@
 """Act: file the incident, mark the model, alert the owners.
 
-Actions per severity (handoff matrix; the fix PR is Day 5's addition):
+Actions per severity:
   P0/P1  incident + model-at-risk tag + doc append + owner alert
   P2     incident + model-at-risk tag + doc append
   P3     doc note only

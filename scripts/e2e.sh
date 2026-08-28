@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Acceptance tests (handoff §9). Requires a running, ingested stack in the
+# Acceptance tests. Requires a running, ingested stack in the
 # HEALTHY state; leaves it healthy again. Covers:
 #   1  the world exists with column-level lineage
 #   2  break -> one agent run files exactly 1 incident + tag + run log

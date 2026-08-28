@@ -1,9 +1,8 @@
 """Detect: turn schema changes into normalized ChangeEvents.
 
-Day 2 ships the CLI-trigger path: diff the two most recent schemaMetadata
-versions in DataHub and synthesize a ChangeEvent. The poller daemon and the
-Kafka consumer (Day 3) reuse `diff_schemas` so all triggers emit identical
-events.
+The CLI-trigger path diffs the two most recent schemaMetadata versions in
+DataHub and synthesizes a ChangeEvent. The poller daemon and the Kafka
+consumer reuse `diff_schemas` so all triggers emit identical events.
 """
 
 from __future__ import annotations

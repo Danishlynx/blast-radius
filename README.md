@@ -4,6 +4,10 @@
 
 Built for the [DataHub Agent Hackathon](https://datahub.devpost.com/) — Challenge 3, *Production ML Agents*.
 
+## Status
+
+Built in a week (Aug 3-5, 2026) for the hackathon, and it works: the five-stage loop, the fix PRs, the deploy gate, and the leakage auditor were all built and verified against a live stack. It was never submitted; I fell ill the week of the deadline. The more useful outcome came after. The limitation this agent ran into, that DataHub incidents could not attach to `mlModel`, `mlFeature`, or `mlFeatureTable`, became [RFC datahub#18911](https://github.com/datahub-project/datahub/issues/18911), and I then implemented it upstream: [#19112](https://github.com/datahub-project/datahub/pull/19112) (backend and GraphQL), [#19132](https://github.com/datahub-project/datahub/pull/19132) (incident UI), and [#19367](https://github.com/datahub-project/datahub/pull/19367) (mlFeatureTable). All three are merged and the RFC is closed as completed, so DataHub has native ML incident support now. The code here still uses the two-signal workaround it was built with, an incident on the feature table plus a `model-at-risk` tag on the model, which is what `agent/act.py` and `gate/gate.py` do today. Moving it onto the native API is the next change here.
+
 ```
 [1/5] DETECT    rename: amount_usd (DOUBLE) → amount (BIGINT)   ← nothing crashed
 [2/5] TRAVERSE  raw_transactions → … → avg_amount_30d → fraud_model ● deployed env=PROD
@@ -73,7 +77,7 @@ flowchart TB
 
 The agent is **stateless** — no database, no local files as source of truth. Idempotency comes from the evidence hash matched against DataHub's own incidents; safe under re-delivery and mid-run crashes. Adapters (`agent/adapters/`) are thin and contain zero business logic; the pipeline (`sentinel → traverse → diagnose → act → memory`) is pure logic with table-driven tests.
 
-## The deployment gate (use it on any repo)
+## The deployment gate (reusable GitHub Action)
 
 ```yaml
 - uses: Danishlynx/blast-radius/gate@main
@@ -83,7 +87,7 @@ The agent is **stateless** — no database, no local files as source of truth. I
     model_query: fraud_model   # or model_urn: exact URN
 ```
 
-Red ❌ with a job summary listing every blocker (and DataHub links) while any upstream incident is ACTIVE or the model carries `model-at-risk` / `leakage-suspect`; green ✅ otherwise.
+Red ❌ with a job summary listing every blocker (and DataHub links) while any upstream incident is ACTIVE or the model carries `model-at-risk` / `leakage-suspect`; green ✅ otherwise. The action runs through `uv`, so the consuming job needs uv installed and a project env providing `requests` (see `.github/workflows/deploy-model.yml` here for the working pattern).
 
 ## Production hardening
 
@@ -95,8 +99,8 @@ Red ❌ with a job summary listing every blocker (and DataHub links) while any u
 
 ## Open-source contributions
 
-- **`skill/datahub-ml-impact`** — an ML impact-analysis skill for the DataHub skills registry (which today has no ML skill): blast-radius walking, severity rubric, structural leakage rules over the MCP tools. **PR: [datahub-project/datahub-skills#91](https://github.com/datahub-project/datahub-skills/pull/91)**
-- **`rfc/ml-entity-incidents.md`** — RFC to extend Incidents to `mlModel`/`mlFeature`/`mlFeatureTable`, motivated by the concrete limitation this agent hit (incidents can't attach to models; see the two-signal workaround in `agent/act.py` + `gate/gate.py`). **Filed: [datahub-project/datahub#18911](https://github.com/datahub-project/datahub/issues/18911)**
+- **`rfc/ml-entity-incidents.md`** — RFC to extend Incidents to `mlModel`/`mlFeature`/`mlFeatureTable`, motivated by the concrete limitation this agent hit (see the two-signal workaround in `agent/act.py` + `gate/gate.py`). **Shipped: [datahub#18911](https://github.com/datahub-project/datahub/issues/18911) closed as completed, implemented in three merged PRs ([#19112](https://github.com/datahub-project/datahub/pull/19112), [#19132](https://github.com/datahub-project/datahub/pull/19132), [#19367](https://github.com/datahub-project/datahub/pull/19367))**
+- **`skill/datahub-ml-impact`** — an ML impact-analysis skill for the DataHub skills registry: blast-radius walking, severity rubric, structural leakage rules over the MCP tools. **PR: [datahub-project/datahub-skills#151](https://github.com/datahub-project/datahub-skills/pull/151)** (in review)
 
 ## Evaluation
 
